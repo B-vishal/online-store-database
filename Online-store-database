@@ -1,0 +1,151 @@
+-- Create Brands table
+CREATE TABLE Brands (
+    BrandID INT PRIMARY KEY,
+    BrandName VARCHAR(50) NOT NULL,
+    FoundedYear INT,
+    Headquarters VARCHAR(100),
+    Website VARCHAR(100),
+    Description TEXT
+);
+
+-- Create Categories table
+CREATE TABLE Categories (
+    CategoryID INT PRIMARY KEY,
+    CategoryName VARCHAR(50) NOT NULL,
+    ParentCategoryID INT,
+    Description TEXT,
+    CONSTRAINT FK_ParentCategory FOREIGN KEY (ParentCategoryID) REFERENCES Categories(CategoryID)
+);
+
+-- Create Products table
+CREATE TABLE Products (
+    ProductID INT PRIMARY KEY,
+    ProductName VARCHAR(100) NOT NULL,
+    BrandID INT,
+    CategoryID INT,
+    Price DECIMAL(10, 2) NOT NULL,
+    StockQuantity INT NOT NULL,
+    Description TEXT,
+    CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT FK_Brand_Product FOREIGN KEY (BrandID) REFERENCES Brands(BrandID),
+    CONSTRAINT FK_Category_Product FOREIGN KEY (CategoryID) REFERENCES Categories(CategoryID)
+);
+
+-- Create Customers table
+CREATE TABLE Customers (
+    CustomerID INT PRIMARY KEY,
+    FirstName VARCHAR(50) NOT NULL,
+    LastName VARCHAR(50) NOT NULL,
+    Email VARCHAR(100) NOT NULL,
+    Phone VARCHAR(20),
+    Address VARCHAR(255),
+    RegistrationDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    LastLogin DATETIME,
+    CONSTRAINT UNIQUE_Email UNIQUE (Email)
+);
+
+-- Create Addresses table
+CREATE TABLE Addresses (
+    AddressID INT PRIMARY KEY,
+    CustomerID INT,
+    AddressType ENUM('Billing', 'Shipping') NOT NULL,
+    AddressLine1 VARCHAR(255),
+    AddressLine2 VARCHAR(255),
+    City VARCHAR(50),
+    State VARCHAR(50),
+    ZipCode VARCHAR(20),
+    Country VARCHAR(50),
+    CONSTRAINT FK_Customer_Address FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID)
+);
+
+-- Create Orders table
+CREATE TABLE Orders (
+    OrderID INT PRIMARY KEY,
+    CustomerID INT,
+    OrderDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    TotalAmount DECIMAL(10, 2) NOT NULL,
+    ShippingAddressID INT,
+    Status ENUM('Pending', 'Shipped', 'Delivered') DEFAULT 'Pending',
+    PaymentMethod VARCHAR(50),
+    CONSTRAINT FK_Customer_Order FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID),
+    CONSTRAINT FK_ShippingAddress_Order FOREIGN KEY (ShippingAddressID) REFERENCES Addresses(AddressID)
+);
+
+-- Create OrderItems table
+CREATE TABLE OrderItems (
+    OrderItemID INT PRIMARY KEY,
+    OrderID INT,
+    ProductID INT,
+    Quantity INT NOT NULL,
+    Price DECIMAL(10, 2) NOT NULL,
+    CONSTRAINT FK_Order_OrderItem FOREIGN KEY (OrderID) REFERENCES Orders(OrderID),
+    CONSTRAINT FK_Product_OrderItem FOREIGN KEY (ProductID) REFERENCES Products(ProductID)
+);
+
+-- Create Reviews table
+CREATE TABLE Reviews (
+    ReviewID INT PRIMARY KEY,
+    ProductID INT,
+    CustomerID INT,
+    Rating INT CHECK (Rating >= 1 AND Rating <= 5),
+    Comment TEXT,
+    CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT FK_Product_Review FOREIGN KEY (ProductID) REFERENCES Products(ProductID),
+    CONSTRAINT FK_Customer_Review FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID)
+);
+
+-- Create Coupons table
+CREATE TABLE Coupons (
+    CouponID INT PRIMARY KEY,
+    Code VARCHAR(20) UNIQUE NOT NULL,
+    DiscountAmount DECIMAL(5, 2) NOT NULL,
+    ExpiryDate DATE NOT NULL
+);
+
+-- Sample Query 1: Retrieve Product Information, Brand, and Category Details
+SELECT 
+    p.ProductID,
+    p.ProductName,
+    p.Description AS ProductDescription,
+    p.Price,
+    p.StockQuantity,
+    b.BrandName,
+    c.CategoryName
+FROM Products p
+JOIN Brands b ON p.BrandID = b.BrandID
+JOIN Categories c ON p.CategoryID = c.CategoryID
+WHERE p.ProductID = 1; -- Replace with the desired ProductID
+
+-- Sample Query 2: Get Customers and Their Addresses
+SELECT 
+    c.CustomerID,
+    c.FirstName,
+    c.LastName,
+    a.AddressType,
+    a.AddressLine1,
+    a.City,
+    a.State,
+    a.ZipCode,
+    a.Country
+FROM Customers c
+JOIN Addresses a ON c.CustomerID = a.CustomerID
+WHERE c.CustomerID = 1; -- Replace with the desired CustomerID
+
+-- Sample Query 3: Retrieve Reviews with Product and Customer Information
+SELECT 
+    r.ReviewID,
+    r.Rating,
+    r.Comment,
+    r.CreatedAt,
+    p.ProductName,
+    c.FirstName,
+    c.LastName
+FROM Reviews r
+JOIN Products p ON r.ProductID = p.ProductID
+JOIN Customers c ON r.CustomerID = c.CustomerID
+WHERE p.ProductID = 1; -- Replace with the desired ProductID
+
+-- Sample Query 4: Get Active Coupons
+SELECT *
+FROM Coupons
+WHERE ExpiryDate >= CURRENT_DATE;
